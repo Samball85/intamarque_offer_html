@@ -3,11 +3,13 @@ import openpyxl
 from io import BytesIO
 from html import escape
 
-# Define fallback colour rules for common header shades
+# Define header background fallback colour
 HEADER_ROW_INDEX = 2
 GREY_HEADER_BG = "#d9d9d9"
+DEFAULT_BG = "#ffffff"
+DEFAULT_TEXT_COLOR = "#000000"
 
-# Convert Excel fill color to hex with a fallback for header rows
+# Convert Excel fill color to hex with fallback logic
 def excel_color_to_hex(cell):
     try:
         if cell.fill and cell.fill.fgColor.type == 'rgb':
@@ -17,10 +19,10 @@ def excel_color_to_hex(cell):
     except:
         pass
     if cell.row == HEADER_ROW_INDEX:
-        return GREY_HEADER_BG  # fallback grey for headers
-    return "#ffffff"  # default to white
+        return GREY_HEADER_BG
+    return DEFAULT_BG
 
-# Format cell values with currency handling
+# Format cell values with appropriate symbols and rounding
 def format_value(value, number_format):
     if value is None:
         return ""
@@ -38,7 +40,7 @@ def format_value(value, number_format):
     except:
         return escape(str(value))
 
-# Create fully inlined HTML table
+# Build HTML table with fully inlined styles
 def generate_html_table(sheet):
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
     for row in sheet.iter_rows():
@@ -48,7 +50,10 @@ def generate_html_table(sheet):
             bg_color = excel_color_to_hex(cell)
             bold = "font-weight: bold;" if cell.font and cell.font.bold else ""
             align = "text-align: center;" if isinstance(cell.value, (int, float)) else "text-align: left;"
-            style = f"border: 1px solid #999; padding: 6px; background-color: {bg_color}; {bold} {align}"
+            style = (
+                f"border: 1px solid #ccc; padding: 6px; background-color: {bg_color}; "
+                f"color: {DEFAULT_TEXT_COLOR}; {bold} {align}"
+            )
             html += f'<td style="{style}">{value}</td>'
         html += "</tr>"
     html += "</table>"
