@@ -63,7 +63,7 @@ def generate_html_table(sheet):
     return html
 
 st.title("Hi Sales Team – Intamarque Offer Sheet to Brevo HTML Converter")
-sst.markdown("""
+st.markdown("""
     <style>
         html, body, [class*="css"] {
             background-color: white !important;
