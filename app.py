@@ -3,14 +3,19 @@ import openpyxl
 from io import BytesIO
 from html import escape
 
-# Convert Excel fill color to hex, with fallback
-def excel_color_to_hex(cåell):
+# Convert Excel fill color to hex with fallback
+def excel_color_to_hex(cell):
     try:
-        if cell.fill.fgColor.type == 'rgb' and cell.fill.fgColor.rgb:
-            return f"#{cell.fill.fgColor.rgb[2:]}"
+        if cell.fill and cell.fill.fgColor.type == 'rgb':
+            rgb = cell.fill.fgColor.rgb
+            if rgb and len(rgb) == 8:
+                return f"#{rgb[2:]}"
     except:
         pass
-    return "#ffffff"  # fallback to white if unset or unreadable
+    # fallback to default light grey for headers
+    if cell.row == 2 or cell.row == 3:
+        return "#d9d9d9"
+    return "#ffffff"  # default to white
 
 # Format value based on number format (for currency)
 def format_value(value, number_format):
@@ -32,15 +37,15 @@ def format_value(value, number_format):
 
 # Build HTML table from Excel sheet
 def generate_html_table(sheet):
-    html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px;">'
+    html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
     for row in sheet.iter_rows():
         html += "<tr>"
         for cell in row:
             val = format_value(cell.value, cell.number_format)
             bold = "font-weight: bold;" if cell.font and cell.font.bold else ""
             bg_color = excel_color_to_hex(cell)
-            border = "border: 1px solid #000; padding: 4px;"
-            style = f"{border} background-color: {bg_color}; {bold}"
+            border = "border: 1px solid #ccc; padding: 6px;"
+            style = f"{border} background-color: {bg_color}; {bold} text-align: left;"
             html += f'<td style="{style}">{val}</td>'
         html += "</tr>"
     html += "</table>"
