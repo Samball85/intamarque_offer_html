@@ -63,14 +63,15 @@ def generate_html_table(sheet):
     return html
 
 st.title("Hi Sales Team – Intamarque Offer Sheet to Brevo HTML Converter")
-st.markdown("""
+sst.markdown("""
     <style>
-    html, body, [class*="css"] {
-        background-color: #ffffff !important;
-        color: #000000 !important;
-    }
+        html, body, [class*="css"] {
+            background-color: white !important;
+            color: black !important;
+        }
     </style>
 """, unsafe_allow_html=True)
+
 st.write("Upload your Excel offer sheet and get clean, styled HTML ready to paste into Brevo.")
 
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
