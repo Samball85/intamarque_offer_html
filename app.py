@@ -3,21 +3,23 @@ import openpyxl
 from io import BytesIO
 from html import escape
 
-DEFAULT_TEXT_COLOR = "#000000"
+# Constants
 DEFAULT_BG = "#ffffff"
+DEFAULT_TEXT_COLOR = "#000000"
 
-# Convert Excel fill to hex colour (fallback to white)
+# Function to convert Excel fill to hex
 def excel_color_to_hex(cell):
     try:
-        if cell.fill and cell.fill.fgColor.type == 'rgb':
-            rgb = cell.fill.fgColor.rgb
+        fill = cell.fill
+        if fill and fill.fgColor and fill.fgColor.type == 'rgb':
+            rgb = fill.fgColor.rgb
             if rgb and len(rgb) == 8:
                 return f"#{rgb[2:]}"
     except:
         pass
     return DEFAULT_BG
 
-# Format numbers nicely
+# Format values
 def format_value(value, number_format):
     if value is None:
         return ""
@@ -35,29 +37,15 @@ def format_value(value, number_format):
     except:
         return escape(str(value))
 
-# Detect visible table area
-def get_table_bounds(sheet):
-    min_row, max_row = None, 0
-    min_col, max_col = None, 0
-    for row in sheet.iter_rows():
-        for cell in row:
-            if cell.value is not None and str(cell.value).strip() != "":
-                if min_row is None or cell.row < min_row:
-                    min_row = cell.row
-                if cell.row > max_row:
-                    max_row = cell.row
-                if min_col is None or cell.column < min_col:
-                    min_col = cell.column
-                if cell.column > max_col:
-                    max_col = cell.column
-    return min_row, max_row, min_col, max_col
-
-# Build the styled HTML table
+# Main table rendering logic
 def generate_html_table(sheet):
-    min_row, max_row, min_col, max_col = get_table_bounds(sheet)
+    start_row = 1
+    end_row = 19
+    start_col = 1
+    end_col = 21
 
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
-    for row in sheet.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
+    for row in sheet.iter_rows(min_row=start_row, max_row=end_row, min_col=start_col, max_col=end_col):
         html += "<tr>"
         for cell in row:
             value = format_value(cell.value, cell.number_format)
@@ -73,9 +61,9 @@ def generate_html_table(sheet):
     html += "</table>"
     return html
 
-# Streamlit interface
-st.title("🧾 Intamarque Offer Sheet → Brevo HTML")
-st.write("Upload your Excel offer sheet and get clean, styled HTML ready for Brevo.")
+# Streamlit UI
+st.title("Intamarque Offer Sheet → Brevo HTML Converter")
+st.write("Upload your Excel offer sheet and receive clean, styled HTML ready to paste directly into Brevo.")
 
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
@@ -86,5 +74,5 @@ if uploaded_file:
     html_code = generate_html_table(sheet)
 
     st.subheader("Brevo-Ready HTML")
-    st.text_area("👇 Copy & paste this into Brevo", html_code, height=400)
-    st.success("✅ Styled HTML table generated.")
+    st.text_area("Copy this code into your Brevo HTML block:", html_code, height=400)
+    st.success("✅ HTML generated and ready to paste.")
