@@ -59,8 +59,8 @@ def format_value(val, number_format):
 # Main table builder with skip logic for empty rows
 def generate_html(sheet):
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
-
-    for row in sheet.iter_rows(min_row=6):
+    for row in sheet.iter_rows():
+        # Skip completely empty rows
         if all(cell.value in [None, ""] for cell in row):
             continue
 
@@ -69,13 +69,12 @@ def generate_html(sheet):
             value = format_value(cell.value, cell.number_format)
 
             # Custom column background overrides
-if i in [9, 10]:  # J, K
-    bg = "#fce4d6"  # Peach
-elif i in [11, 12]:  # L, M
-    bg = "#e2efda"  # Light green
-else:
-    bg = get_bg_color(cell)
-
+            if i in [9, 10]:  # J, K
+                bg = "#fce4d6"  # Peach
+            elif i in [11, 12]:  # L, M
+                bg = "#e2efda"  # Light green
+            else:
+                bg = get_bg_color(cell)
 
             bold = "font-weight: bold;" if is_bold(cell) else ""
             align = "text-align: center;" if isinstance(cell.value, (int, float)) else "text-align: left;"
@@ -83,7 +82,6 @@ else:
         html += "</tr>"
     html += "</table>"
     return html
-
 
 if uploaded_file:
     wb = openpyxl.load_workbook(BytesIO(uploaded_file.read()), data_only=True)
