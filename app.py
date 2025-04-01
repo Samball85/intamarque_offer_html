@@ -3,9 +3,9 @@ import openpyxl
 from io import BytesIO
 from html import escape
 
-# Define header background fallback colour
+# Define constants
 HEADER_ROW_INDEX = 2
-GREY_HEADER_BG = "#d9d9d9"
+GREY_HEADER_BG = "#D1DEE5"
 DEFAULT_BG = "#ffffff"
 DEFAULT_TEXT_COLOR = "#000000"
 
@@ -42,7 +42,9 @@ def format_value(value, number_format):
 
 # Build HTML table with fully inlined styles
 def generate_html_table(sheet):
-    html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
+    html = '''
+    <table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%; background-color: #ffffff !important;">
+    '''
     for row in sheet.iter_rows():
         html += "<tr>"
         for cell in row:
@@ -51,16 +53,25 @@ def generate_html_table(sheet):
             bold = "font-weight: bold;" if cell.font and cell.font.bold else ""
             align = "text-align: center;" if isinstance(cell.value, (int, float)) else "text-align: left;"
             style = (
-                f"border: 1px solid #ccc; padding: 6px; background-color: {bg_color}; "
-                f"color: {DEFAULT_TEXT_COLOR}; {bold} {align}"
+                f"border: 1px solid #ccc !important; padding: 8px 6px !important; "
+                f"background-color: {bg_color} !important; color: {DEFAULT_TEXT_COLOR} !important; "
+                f"{bold} {align}"
             )
             html += f'<td style="{style}">{value}</td>'
         html += "</tr>"
     html += "</table>"
     return html
 
-st.title("Intamarque Offer Sheet to Brevo HTML Converter")
-st.write("Upload your Excel offer sheet and receive clean, styled HTML ready to paste directly into Brevo.")
+st.title("Hi Sales Team – Intamarque Offer Sheet to Brevo HTML Converter")
+st.markdown("""
+    <style>
+    html, body, [class*="css"] {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+st.write("Upload your Excel offer sheet and get clean, styled HTML ready to paste into Brevo.")
 
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
