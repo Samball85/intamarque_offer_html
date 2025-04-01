@@ -1,48 +1,43 @@
 import streamlit as st
-import pandas as pd
+import openpyxl
 from io import BytesIO
+from html import escape
 
-# Try to import premailer for CSS inlining
-try:
-    from premailer import transform
-    premailer_available = True
-except ImportError:
-    premailer_available = False
+# Helper function to convert Excel fill color to hex
+def excel_color_to_hex(color):
+    if color is None:
+        return ""
+    if color.type == 'rgb' and color.rgb:
+        return f"#{color.rgb[2:]}"  # remove alpha channel
+    return ""
 
-def convert_excel_to_html(file_bytes):
-    # Read the Excel file into a DataFrame
-    df = pd.read_excel(BytesIO(file_bytes))
-    
-    # Adjust the DataFrame to remove non-table rows
-    # Here we assume the table starts at row 5 (index 4)
-    df_clean = df.iloc[4:].reset_index(drop=True)
-    df_clean.columns = df_clean.iloc[0]  # Set the first row as headers
-    df_clean = df_clean[1:]  # Remove the header row from the data
+# Convert Excel cell data to styled HTML
+def generate_html_table(sheet):
+    html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px;">'
+    for row in sheet.iter_rows():
+        html += "<tr>"
+        for cell in row:
+            value = "" if cell.value is None else escape(str(cell.value))
+            bold = "font-weight: bold;" if cell.font and cell.font.bold else ""
+            bg_color = excel_color_to_hex(cell.fill.fgColor)
+            bg_style = f"background-color: {bg_color};" if bg_color else ""
+            border = "border: 1px solid #000; padding: 4px;"
+            html += f'<td style="{border} {bg_style} {bold}">{value}</td>'
+        html += "</tr>"
+    html += "</table>"
+    return html
 
-    # Create a styled HTML table (this uses pandas styling)
-    styled_html = df_clean.style \
-        .set_table_attributes('border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px;"') \
-        .set_table_styles([{'selector': 'th', 'props': [('background-color', '#D9D9D9'), ('font-weight', 'bold')]}]) \
-        .set_properties(**{'border': '1px solid #000', 'padding': '5px'}) \
-        .to_html()
-    
-    # Inline CSS if premailer is available
-    if premailer_available:
-        inlined_html = transform(styled_html)
-    else:
-        inlined_html = styled_html  # Fallback if premailer isn't installed
+st.title("Intamarque Offer Sheet to Brevo HTML Converter")
+st.write("Upload a formatted Excel offer sheet below. You'll receive clean, inline-styled HTML ready for Brevo.")
 
-    return inlined_html
+uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
-st.title("Intamarque Offer HTML Generator")
-st.write("Upload an Excel offer file to generate Brevo-ready HTML code with inline CSS.")
+if uploaded_file:
+    wb = openpyxl.load_workbook(BytesIO(uploaded_file.read()), data_only=True)
+    sheet = wb.active
 
-uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
+    html_code = generate_html_table(sheet)
 
-if uploaded_file is not None:
-    # Convert the uploaded file to inlined HTML
-    html_code = convert_excel_to_html(uploaded_file.read())
-    
-    st.subheader("Generated HTML Code")
-    st.text_area("Copy the HTML code below and paste it into Brevo:", html_code, height=400)
-    st.success("HTML generated successfully!")
+    st.subheader("HTML Output")
+    st.text_area("Copy this code into Brevo: 👇", html_code, height=400)
+    st.success("✅ HTML generated! Paste it into Brevo for a pixel-perfect offer table.")
