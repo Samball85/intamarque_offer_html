@@ -58,7 +58,7 @@ def format_value(val, number_format):
 
 # Main table builder with skip logic for empty rows
 def generate_html(sheet):
-    html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
+    html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; min-width: 1200px; width: auto;">'
 
     for row in sheet.iter_rows(min_row=6):  # Include Row 6 (headers), skip rows 1–5
         # Skip completely empty rows
