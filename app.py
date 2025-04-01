@@ -6,7 +6,7 @@ from html import escape
 st.set_page_config(layout="wide")
 
 st.title("Hi Sales Team 👋 Intamarque Offer Sheet to Brevo HTML Converter APP")
-st.write("Upload your Excel offer sheet and this will generate your html soce with css inline.")
+st.write("Upload your Excel offer sheet and this will generate your html code with css inline.")
 
 uploaded_file = st.file_uploader("📤 Upload Excel File", type=["xlsx"])
 
@@ -65,7 +65,7 @@ def generate_html(sheet):
     )
 
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
-    for i, row in enumerate(sheet.iter_rows(min_row=3), start=3):  # Skip top rows, start from row 3
+    for i, row in enumerate(sheet.iter_rows(min_row=6), start=6):  # Skip top rows, start from row 6
         if all(cell.value in [None, ""] for cell in row[:max_col_with_data]):
             continue
 
