@@ -3,83 +3,103 @@ import openpyxl
 from io import BytesIO
 from html import escape
 
-st.set_page_config(layout="wide")
+# Constants
+HEADER_ROW_INDEX = 6
+GREY_HEADER_BG = "#d1dee5"
+ORANGE_CELL_BG = "#fbe4d5"
+GREEN_CELL_BG = "#d9ead3"
+DEFAULT_BG = "#ffffff"
+DEFAULT_TEXT_COLOR = "#000000"
 
-st.title("Hi Sales Team 👋 Intamarque Offer Sheet to Brevo HTML Converter")
-st.write("Upload your Excel offer sheet and get clean, styled HTML to paste into Brevo (with all colours, formatting, and spacing).")
+# Force colour by column header name
+PRICE_COLOURS = {
+    "Case Price": ORANGE_CELL_BG,
+    "Case Unit Price": ORANGE_CELL_BG,
+    "Pallet Price": GREEN_CELL_BG,
+    "Pallet Unit Price": GREEN_CELL_BG,
+    "EURO Unit Case ": GREEN_CELL_BG,
+    "EURO Unit Pallet": GREEN_CELL_BG,
+    "USD Unit Case": GREEN_CELL_BG,
+    "USD Unit Pallet": GREEN_CELL_BG,
+}
 
-uploaded_file = st.file_uploader("📤 Upload Excel File", type=["xlsx"])
-
-# Convert Excel fill color to hex with theme fallback
-def get_bg_color(cell):
-    try:
-        fill = cell.fill
-        if fill.patternType == 'solid':
-            if fill.fgColor.type == 'rgb' and fill.fgColor.rgb:
-                rgb = fill.fgColor.rgb
-                if len(rgb) == 8:
-                    return f"#{rgb[2:]}"
-            elif fill.fgColor.type == 'theme':
-                # fallback for theme colours
-                theme_colors = {
-                    0: "#ffffff",  # Light1
-                    1: "#000000",  # Dark1
-                    2: "#eeece1",  # Light2
-                    3: "#1f497d",  # Dark2
-                }
-                return theme_colors.get(fill.fgColor.theme, "#ffffff")
-    except:
-        pass
-    return "#ffffff"
-
-# Bold detection
-def is_bold(cell):
-    try:
-        return cell.font.bold
-    except:
-        return False
-
-# Format values neatly
-def format_value(val, number_format):
-    if val is None:
+# Format cell values
+def format_value(value, number_format):
+    if value is None:
         return ""
     try:
-        if "£" in number_format or "\u00a3" in number_format:
-            return f"£{float(val):,.2f}"
+        if "\u00a3" in number_format or "£" in number_format:
+            return f"£{float(value):,.2f}"
         elif "$" in number_format:
-            return f"${float(val):,.2f}"
-        elif "€" in number_format or "\u20ac" in number_format:
-            return f"€{float(val):,.2f}"
-        elif isinstance(val, float):
-            return f"{val:,.2f}"
-        return str(val)
+            return f"${float(value):,.2f}"
+        elif "\u20ac" in number_format or "€" in number_format:
+            return f"€{float(value):,.2f}"
+        elif "," in number_format or "." in number_format:
+            return str(int(value)) if float(value).is_integer() else str(value)
+        else:
+            return str(value)
     except:
-        return escape(str(val))
+        return escape(str(value))
 
-# Main table builder with skip logic for empty rows
-def generate_html(sheet):
+# Convert fill colour
+def excel_color_to_hex(cell):
+    try:
+        if cell.fill and cell.fill.fgColor.type == 'rgb':
+            rgb = cell.fill.fgColor.rgb
+            if rgb and len(rgb) == 8:
+                return f"#{rgb[2:]}"
+    except:
+        pass
+    return None
+
+# Generate HTML with enforced styling
+def generate_html_table(sheet):
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
-    for row in sheet.iter_rows():
-        # Skip completely empty rows
-        if all(cell.value in [None, ""] for cell in row):
+    headers = []
+    for row_idx, row in enumerate(sheet.iter_rows()):
+        # Skip empty rows at the top
+        if row_idx < HEADER_ROW_INDEX - 1:
             continue
-
+        if all(cell.value is None for cell in row):
+            break  # stop at first empty row
         html += "<tr>"
-        for cell in row:
+        for col_idx, cell in enumerate(row):
             value = format_value(cell.value, cell.number_format)
-            bg = get_bg_color(cell)
-            bold = "font-weight: bold;" if is_bold(cell) else ""
+            is_header = row_idx == HEADER_ROW_INDEX - 1
+
+            # Store header for later reference
+            if is_header:
+                headers.append(value)
+
+            # Determine background colour
+            if is_header:
+                bg_color = GREY_HEADER_BG
+            else:
+                header = headers[col_idx] if col_idx < len(headers) else ""
+                bg_color = PRICE_COLOURS.get(header, excel_color_to_hex(cell) or DEFAULT_BG)
+
+            bold = "font-weight: bold;" if cell.font and cell.font.bold else ""
             align = "text-align: center;" if isinstance(cell.value, (int, float)) else "text-align: left;"
-            html += f'<td style="border: 1px solid #ccc; padding: 6px; background-color: {bg}; {bold} {align}">{value}</td>'
+            style = (
+                f"border: 1px solid #ccc; padding: 6px; background-color: {bg_color}; "
+                f"color: {DEFAULT_TEXT_COLOR}; {bold} {align}"
+            )
+            html += f'<td style="{style}">{value}</td>'
         html += "</tr>"
     html += "</table>"
     return html
 
+st.set_page_config(page_title="Offer Sheet HTML Converter", layout="wide")
+st.title("Hi Sales Team 👋 Here's your Intamarque Offer Sheet to Brevo HTML Converter")
+st.write("Upload your Excel offer sheet and receive clean, styled HTML ready to paste into Brevo.")
+
+uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
+
 if uploaded_file:
     wb = openpyxl.load_workbook(BytesIO(uploaded_file.read()), data_only=True)
     sheet = wb.active
-    html_code = generate_html(sheet)
+    html_code = generate_html_table(sheet)
 
-    st.subheader("✅ Brevo-Ready HTML")
-    st.text_area("👇 Copy this into your Brevo HTML block:", html_code, height=500)
-    st.success("All done — styling and spacing now match Excel perfectly! 🚀")
+    st.subheader("📋 Brevo-Ready HTML")
+    st.text_area("Copy this code into your Brevo HTML block:", html_code, height=400)
+    st.success("✅ HTML generated with colours and structure matching your Excel sheet.")
