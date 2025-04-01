@@ -68,11 +68,14 @@ def generate_html(sheet):
         for i, cell in enumerate(row):
             value = format_value(cell.value, cell.number_format)
 
-            # Apply peach background override for columns J (index 9) and K (index 10)
-            if i == 9 or i == 10:
-                bg = "#fce4d6"  # Peachy fill
-            else:
-                bg = get_bg_color(cell)
+            # Custom column background overrides
+if i in [9, 10]:  # J, K
+    bg = "#fce4d6"  # Peach
+elif i in [11, 12]:  # L, M
+    bg = "#e2efda"  # Light green
+else:
+    bg = get_bg_color(cell)
+
 
             bold = "font-weight: bold;" if is_bold(cell) else ""
             align = "text-align: center;" if isinstance(cell.value, (int, float)) else "text-align: left;"
