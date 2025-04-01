@@ -3,46 +3,45 @@ import openpyxl
 from io import BytesIO
 from html import escape
 
-# Helper function to convert Excel fill color to hex
-def excel_color_to_hex(color):
-    if color is None:
-        return ""
-    if hasattr(color, 'type') and color.type == 'rgb' and color.rgb:
-        return f"#{color.rgb[2:]}"  # remove alpha
-    return ""
+# Convert Excel fill color to hex, with fallback
+def excel_color_to_hex(cell):
+    try:
+        if cell.fill.fgColor.type == 'rgb' and cell.fill.fgColor.rgb:
+            return f"#{cell.fill.fgColor.rgb[2:]}"
+    except:
+        pass
+    return "#ffffff"  # fallback to white if unset or unreadable
 
-# Format currency values with symbols
-def format_currency(value, number_format):
+# Format value based on number format (for currency)
+def format_value(value, number_format):
     if value is None:
         return ""
     try:
-        float_val = float(value)
-        if "£" in number_format or "£" in str(value):
-            return f"£{float_val:,.2f}"
-        elif "$" in number_format or "$" in str(value):
-            return f"${float_val:,.2f}"
-        elif "€" in number_format or "€" in str(value):
-            return f"€{float_val:,.2f}"
+        if "\u00a3" in number_format or "£" in number_format:
+            return f"£{float(value):,.2f}"
+        elif "$" in number_format:
+            return f"${float(value):,.2f}"
+        elif "\u20ac" in number_format or "€" in number_format:
+            return f"€{float(value):,.2f}"
+        elif "," in number_format or "." in number_format:
+            return str(int(value)) if float(value).is_integer() else str(value)
         else:
-            return f"{float_val:,.2f}"
-    except (ValueError, TypeError):
+            return str(value)
+    except:
         return escape(str(value))
 
-# Convert Excel cell data to styled HTML
+# Build HTML table from Excel sheet
 def generate_html_table(sheet):
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px;">'
     for row in sheet.iter_rows():
         html += "<tr>"
         for cell in row:
-            val = cell.value
-            num_format = cell.number_format if cell.number_format else ""
-            formatted = format_currency(val, num_format)
-
+            val = format_value(cell.value, cell.number_format)
             bold = "font-weight: bold;" if cell.font and cell.font.bold else ""
-            bg_color = excel_color_to_hex(cell.fill.fgColor)
-            bg_style = f"background-color: {bg_color};" if bg_color else ""
+            bg_color = excel_color_to_hex(cell)
             border = "border: 1px solid #000; padding: 4px;"
-            html += f'<td style="{border} {bg_style} {bold}">{formatted}</td>'
+            style = f"{border} background-color: {bg_color}; {bold}"
+            html += f'<td style="{style}">{val}</td>'
         html += "</tr>"
     html += "</table>"
     return html
