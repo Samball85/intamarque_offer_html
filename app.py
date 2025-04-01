@@ -3,7 +3,11 @@ import openpyxl
 from io import BytesIO
 from html import escape
 
-# Convert Excel fill color to hex with fallback
+# Define fallback colour rules for common header shades
+HEADER_ROW_INDEX = 2
+GREY_HEADER_BG = "#d9d9d9"
+
+# Convert Excel fill color to hex with a fallback for header rows
 def excel_color_to_hex(cell):
     try:
         if cell.fill and cell.fill.fgColor.type == 'rgb':
@@ -12,12 +16,11 @@ def excel_color_to_hex(cell):
                 return f"#{rgb[2:]}"
     except:
         pass
-    # fallback to default light grey for headers
-    if cell.row == 2 or cell.row == 3:
-        return "#d9d9d9"
+    if cell.row == HEADER_ROW_INDEX:
+        return GREY_HEADER_BG  # fallback grey for headers
     return "#ffffff"  # default to white
 
-# Format value based on number format (for currency)
+# Format cell values with currency handling
 def format_value(value, number_format):
     if value is None:
         return ""
@@ -35,24 +38,24 @@ def format_value(value, number_format):
     except:
         return escape(str(value))
 
-# Build HTML table from Excel sheet
+# Create fully inlined HTML table
 def generate_html_table(sheet):
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
     for row in sheet.iter_rows():
         html += "<tr>"
         for cell in row:
-            val = format_value(cell.value, cell.number_format)
-            bold = "font-weight: bold;" if cell.font and cell.font.bold else ""
+            value = format_value(cell.value, cell.number_format)
             bg_color = excel_color_to_hex(cell)
-            border = "border: 1px solid #ccc; padding: 6px;"
-            style = f"{border} background-color: {bg_color}; {bold} text-align: left;"
-            html += f'<td style="{style}">{val}</td>'
+            bold = "font-weight: bold;" if cell.font and cell.font.bold else ""
+            align = "text-align: center;" if isinstance(cell.value, (int, float)) else "text-align: left;"
+            style = f"border: 1px solid #999; padding: 6px; background-color: {bg_color}; {bold} {align}"
+            html += f'<td style="{style}">{value}</td>'
         html += "</tr>"
     html += "</table>"
     return html
 
 st.title("Intamarque Offer Sheet to Brevo HTML Converter")
-st.write("Upload a formatted Excel offer sheet below. You'll receive clean, inline-styled HTML ready for Brevo.")
+st.write("Upload your Excel offer sheet and receive clean, styled HTML ready to paste directly into Brevo.")
 
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
@@ -62,6 +65,6 @@ if uploaded_file:
 
     html_code = generate_html_table(sheet)
 
-    st.subheader("HTML Output")
-    st.text_area("Copy this code into Brevo: 👇", html_code, height=400)
-    st.success("✅ HTML generated! Paste it into Brevo for a pixel-perfect offer table.")
+    st.subheader("Brevo-Ready HTML")
+    st.text_area("Copy this code into your Brevo HTML block:", html_code, height=400)
+    st.success("✅ HTML generated and ready to paste.")
