@@ -58,22 +58,26 @@ def format_value(val, number_format):
 
 # Main table builder with skip logic for empty rows
 def generate_html(sheet):
-    html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; min-width: 1200px; width: auto;">'
+    # Determine the last column with actual content
+    max_col_with_data = max(
+        (cell.column for row in sheet.iter_rows() for cell in row if cell.value not in [None, ""]),
+        default=0
+    )
 
-    for row in sheet.iter_rows(min_row=6):  # Include Row 6 (headers), skip rows 1–5
-        # Skip completely empty rows
-        if all(cell.value in [None, ""] for cell in row):
+    html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
+    for i, row in enumerate(sheet.iter_rows(min_row=3), start=3):  # Skip top rows, start from row 3
+        if all(cell.value in [None, ""] for cell in row[:max_col_with_data]):
             continue
 
         html += "<tr>"
-        for i, cell in enumerate(row):
+        for j, cell in enumerate(row[:max_col_with_data]):
             value = format_value(cell.value, cell.number_format)
 
-            # Custom column background overrides
-            if i in [9, 10]:  # J, K
-                bg = "#fce4d6"  # Peach
-            elif i in [11, 12]:  # L, M
-                bg = "#e2efda"  # Light green
+            # Custom colours for specific columns
+            if j == 9 or j == 10:  # Columns J and K (0-indexed)
+                bg = "#ffe5cc"
+            elif j == 11 or j == 12:  # Columns L and M
+                bg = "#e6f4e6"
             else:
                 bg = get_bg_color(cell)
 
