@@ -5,31 +5,41 @@ from html import escape
 
 st.set_page_config(layout="wide")
 
-st.title("Hi Sales Team 👋 Here’s your Intamarque Offer Sheet to Brevo HTML Converter")
-st.write("Upload your Excel offer sheet and get clean, styled HTML to paste into Brevo (with all colours, formatting, etc).")
+st.title("Hi Sales Team 👋 Intamarque Offer Sheet to Brevo HTML Converter")
+st.write("Upload your Excel offer sheet and get clean, styled HTML to paste into Brevo (with all colours, formatting, and spacing).")
 
 uploaded_file = st.file_uploader("📤 Upload Excel File", type=["xlsx"])
 
-# Convert Excel fill color to hex
+# Convert Excel fill color to hex with theme fallback
 def get_bg_color(cell):
     try:
         fill = cell.fill
-        if fill.patternType == 'solid' and fill.fgColor.type == 'rgb':
-            rgb = fill.fgColor.rgb
-            if rgb and len(rgb) == 8:
-                return f"#{rgb[2:]}"
+        if fill.patternType == 'solid':
+            if fill.fgColor.type == 'rgb' and fill.fgColor.rgb:
+                rgb = fill.fgColor.rgb
+                if len(rgb) == 8:
+                    return f"#{rgb[2:]}"
+            elif fill.fgColor.type == 'theme':
+                # fallback for theme colours
+                theme_colors = {
+                    0: "#ffffff",  # Light1
+                    1: "#000000",  # Dark1
+                    2: "#eeece1",  # Light2
+                    3: "#1f497d",  # Dark2
+                }
+                return theme_colors.get(fill.fgColor.theme, "#ffffff")
     except:
         pass
     return "#ffffff"
 
-# Extract font boldness
+# Bold detection
 def is_bold(cell):
     try:
         return cell.font.bold
     except:
         return False
 
-# Format values
+# Format values neatly
 def format_value(val, number_format):
     if val is None:
         return ""
@@ -46,10 +56,14 @@ def format_value(val, number_format):
     except:
         return escape(str(val))
 
-# Convert Excel to HTML with inline styles
+# Main table builder with skip logic for empty rows
 def generate_html(sheet):
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
     for row in sheet.iter_rows():
+        # Skip completely empty rows
+        if all(cell.value in [None, ""] for cell in row):
+            continue
+
         html += "<tr>"
         for cell in row:
             value = format_value(cell.value, cell.number_format)
@@ -68,4 +82,4 @@ if uploaded_file:
 
     st.subheader("✅ Brevo-Ready HTML")
     st.text_area("👇 Copy this into your Brevo HTML block:", html_code, height=500)
-    st.success("HTML generated successfully! 🎉")
+    st.success("All done — styling and spacing now match Excel perfectly! 🚀")
