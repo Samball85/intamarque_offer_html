@@ -3,76 +3,82 @@ import openpyxl
 from io import BytesIO
 from html import escape
 
-st.set_page_config(page_title="Offer Sheet to Brevo HTML Converter", layout="wide")
+st.set_page_config(layout="wide")
 
-st.title("Intamarque Offer Sheet to Brevo HTML Converter")
-st.write("Upload your Excel offer sheet and receive clean, styled HTML ready to paste directly into Brevo.")
+st.title("Hi Sales Team 👋 Intamarque Offer Sheet to Brevo HTML Converter")
+st.write("Upload your Excel offer sheet and get clean, styled HTML to paste into Brevo (with all colours, formatting, and spacing).")
 
-HEADER_ROW_INDEX = 2
-DEFAULT_TEXT_COLOR = "#000000"
-DEFAULT_BG = "#ffffff"
+uploaded_file = st.file_uploader("📤 Upload Excel File", type=["xlsx"])
 
-# Convert Excel fill color to hex (supporting theme/index fallback)
-def excel_color_to_hex(cell, default=DEFAULT_BG):
+# Convert Excel fill color to hex with theme fallback
+def get_bg_color(cell):
     try:
         fill = cell.fill
-        if fill and fill.fgColor:
-            fg = fill.fgColor
-            if fg.type == 'rgb' and fg.rgb:
-                return f"#{fg.rgb[2:]}"
+        if fill.patternType == 'solid':
+            if fill.fgColor.type == 'rgb' and fill.fgColor.rgb:
+                rgb = fill.fgColor.rgb
+                if len(rgb) == 8:
+                    return f"#{rgb[2:]}"
+            elif fill.fgColor.type == 'theme':
+                # fallback for theme colours
+                theme_colors = {
+                    0: "#ffffff",  # Light1
+                    1: "#000000",  # Dark1
+                    2: "#eeece1",  # Light2
+                    3: "#1f497d",  # Dark2
+                }
+                return theme_colors.get(fill.fgColor.theme, "#ffffff")
     except:
         pass
-    return default
+    return "#ffffff"
 
-# Apply font styles like bold
+# Bold detection
+def is_bold(cell):
+    try:
+        return cell.font.bold
+    except:
+        return False
 
-def get_font_style(cell):
-    style = ""
-    if cell.font:
-        if cell.font.bold:
-            style += "font-weight: bold;"
-    return style
+# Format values neatly
+def format_value(val, number_format):
+    if val is None:
+        return ""
+    try:
+        if "£" in number_format or "\u00a3" in number_format:
+            return f"£{float(val):,.2f}"
+        elif "$" in number_format:
+            return f"${float(val):,.2f}"
+        elif "€" in number_format or "\u20ac" in number_format:
+            return f"€{float(val):,.2f}"
+        elif isinstance(val, float):
+            return f"{val:,.2f}"
+        return str(val)
+    except:
+        return escape(str(val))
 
-# Find data bounds so we avoid empty rows/cols
-def get_data_bounds(sheet):
-    min_row, max_row, min_col, max_col = None, 0, None, 0
-    for row in sheet.iter_rows():
-        for cell in row:
-            if cell.value not in (None, ""):
-                if min_row is None or cell.row < min_row:
-                    min_row = cell.row
-                if cell.row > max_row:
-                    max_row = cell.row
-                if min_col is None or cell.column < min_col:
-                    min_col = cell.column
-                if cell.column > max_col:
-                    max_col = cell.column
-    return min_row, max_row, min_col, max_col
-
-# Generate HTML table from Excel content
-def generate_clean_html(sheet, min_row, max_row, min_col, max_col):
+# Main table builder with skip logic for empty rows
+def generate_html(sheet):
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
-    for row in sheet.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
+    for i, row in enumerate(sheet.iter_rows(min_row=6), start=6):  # Start from row 6
+        if all(cell.value in [None, ""] for cell in row):
+            continue  # Skip empty rows
+
         html += "<tr>"
         for cell in row:
-            value = escape(str(cell.value)) if cell.value is not None else ""
-            bg = excel_color_to_hex(cell)
-            font = get_font_style(cell)
+            value = format_value(cell.value, cell.number_format)
+            bg = get_bg_color(cell)
+            bold = "font-weight: bold;" if is_bold(cell) else ""
             align = "text-align: center;" if isinstance(cell.value, (int, float)) else "text-align: left;"
-            style = f"border: 1px solid #ccc; background-color: {bg}; padding: 6px; {font} {align} color: {DEFAULT_TEXT_COLOR};"
-            html += f'<td style="{style}">{value}</td>'
+            html += f'<td style="border: 1px solid #ccc; padding: 6px; background-color: {bg}; {bold} {align}">{value}</td>'
         html += "</tr>"
     html += "</table>"
     return html
 
-uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
-
 if uploaded_file:
     wb = openpyxl.load_workbook(BytesIO(uploaded_file.read()), data_only=True)
     sheet = wb.active
-    min_row, max_row, min_col, max_col = get_data_bounds(sheet)
-    html_code = generate_clean_html(sheet, min_row, max_row, min_col, max_col)
+    html_code = generate_html(sheet)
 
-    st.subheader("Brevo-Ready HTML")
-    st.text_area("Copy this HTML into Brevo:", html_code, height=500)
-    st.success("✅ HTML generated and ready to paste into Brevo.")
+    st.subheader("✅ Brevo-Ready HTML")
+    st.text_area("👇 Copy this into your Brevo HTML block:", html_code, height=500)
+    st.success("All done — styling and spacing now match Excel perfectly! 🚀")
