@@ -15,17 +15,18 @@ def excel_color_to_hex(color):
 def format_currency(value, number_format):
     if value is None:
         return ""
-    if "\u00a3" in number_format or "\u00a3" in str(value):
-        return f"£{round(float(value), 2):,.2f}"
-    elif "$" in number_format or "$" in str(value):
-        return f"${round(float(value), 2):,.2f}"
-    elif "€" in number_format or "\u20ac" in str(value):
-        return f"€{round(float(value), 2):,.2f}"
-    else:
-        try:
-            return f"{round(float(value), 2):,.2f}"
-        except:
-            return escape(str(value))
+    try:
+        float_val = float(value)
+        if "£" in number_format or "£" in str(value):
+            return f"£{float_val:,.2f}"
+        elif "$" in number_format or "$" in str(value):
+            return f"${float_val:,.2f}"
+        elif "€" in number_format or "€" in str(value):
+            return f"€{float_val:,.2f}"
+        else:
+            return f"{float_val:,.2f}"
+    except (ValueError, TypeError):
+        return escape(str(value))
 
 # Convert Excel cell data to styled HTML
 def generate_html_table(sheet):
