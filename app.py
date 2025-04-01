@@ -5,8 +5,8 @@ from html import escape
 
 st.set_page_config(layout="wide")
 
-st.title("Hi Sales Team 👋 Intamarque Offer Sheet to Brevo HTML Converter")
-st.write("Upload your Excel offer sheet and get clean, styled HTML to paste into Brevo (with all colours, formatting, and spacing).")
+st.title("Hi Sales Team 👋 Intamarque Offer Sheet to Brevo HTML Converter APP")
+st.write("Upload your Excel offer sheet and this will generate your html soce with css inline.")
 
 uploaded_file = st.file_uploader("📤 Upload Excel File", type=["xlsx"])
 
