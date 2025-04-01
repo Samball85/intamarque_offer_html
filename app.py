@@ -59,23 +59,21 @@ def format_value(val, number_format):
 # Main table builder with skip logic for empty rows
 def generate_html(sheet):
     html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
-    
-    # First, detect the maximum number of non-empty columns starting from row 6
-    max_columns = 0
-    for row in sheet.iter_rows(min_row=6):
-        filled = [cell for cell in row if cell.value not in [None, ""]]
-        if len(filled) > max_columns:
-            max_columns = len(row)
 
-    # Now build the table
     for row in sheet.iter_rows(min_row=6):
-        if all(cell.value in [None, ""] for cell in row[:max_columns]):
-            continue  # Skip fully empty rows
+        if all(cell.value in [None, ""] for cell in row):
+            continue
 
         html += "<tr>"
-        for cell in row[:max_columns]:
+        for i, cell in enumerate(row):
             value = format_value(cell.value, cell.number_format)
-            bg = get_bg_color(cell)
+
+            # Apply peach background override for columns J (index 9) and K (index 10)
+            if i == 9 or i == 10:
+                bg = "#fce4d6"  # Peachy fill
+            else:
+                bg = get_bg_color(cell)
+
             bold = "font-weight: bold;" if is_bold(cell) else ""
             align = "text-align: center;" if isinstance(cell.value, (int, float)) else "text-align: left;"
             html += f'<td style="border: 1px solid #ccc; padding: 6px; background-color: {bg}; {bold} {align}">{value}</td>'
