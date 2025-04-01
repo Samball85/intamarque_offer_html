@@ -4,7 +4,7 @@ from io import BytesIO
 from html import escape
 
 # Convert Excel fill color to hex, with fallback
-def excel_color_to_hex(cell):
+def excel_color_to_hex(cåell):
     try:
         if cell.fill.fgColor.type == 'rgb' and cell.fill.fgColor.rgb:
             return f"#{cell.fill.fgColor.rgb[2:]}"
