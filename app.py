@@ -5,7 +5,7 @@ from html import escape
 
 st.set_page_config(layout="wide")
 
-st.title("Hi Sales Team 👋 Intamarque Offer Sheet to Brevo HTML Converter APP")
+st.title("Hello Sales Team 👋 Intamarque Offer Sheet to Brevo HTML Converter APP")
 st.write("Upload your Excel offer sheet and this will generate your html code with css inline.")
 
 uploaded_file = st.file_uploader("📤 Upload Excel File", type=["xlsx"])
@@ -20,7 +20,6 @@ def get_bg_color(cell):
                 if len(rgb) == 8:
                     return f"#{rgb[2:]}"
             elif fill.fgColor.type == 'theme':
-                # fallback for theme colours
                 theme_colors = {
                     0: "#ffffff",  # Light1
                     1: "#000000",  # Dark1
@@ -56,16 +55,18 @@ def format_value(val, number_format):
     except:
         return escape(str(val))
 
-# Main table builder with skip logic for empty rows
+# Main table builder with scroll + fixed width
 def generate_html(sheet):
-    # Determine the last column with actual content
     max_col_with_data = max(
         (cell.column for row in sheet.iter_rows() for cell in row if cell.value not in [None, ""]),
         default=0
     )
 
-    html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 100%;">'
-    for i, row in enumerate(sheet.iter_rows(min_row=6), start=6):  # Skip top rows, start from row 6
+    html = '''
+    <div style="overflow-x: auto; width: 100%;">
+        <table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; width: 1500px; table-layout: fixed;">
+    '''
+    for i, row in enumerate(sheet.iter_rows(min_row=6), start=6):
         if all(cell.value in [None, ""] for cell in row[:max_col_with_data]):
             continue
 
@@ -74,7 +75,7 @@ def generate_html(sheet):
             value = format_value(cell.value, cell.number_format)
 
             # Custom colours for specific columns
-            if j == 9 or j == 10:  # Columns J and K (0-indexed)
+            if j == 9 or j == 10:  # Columns J and K
                 bg = "#ffe5cc"
             elif j == 11 or j == 12:  # Columns L and M
                 bg = "#e6f4e6"
@@ -83,11 +84,10 @@ def generate_html(sheet):
 
             bold = "font-weight: bold;" if is_bold(cell) else ""
             align = "text-align: center;" if isinstance(cell.value, (int, float)) else "text-align: left;"
-            html += f'<td style="border: 1px solid #ccc; padding: 6px; background-color: {bg}; {bold} {align}">{value}</td>'
+            html += f'<td style="border: 1px solid #ccc; padding: 6px; background-color: {bg}; white-space: nowrap; {bold} {align}">{value}</td>'
         html += "</tr>"
-    html += "</table>"
+    html += "</table></div>"
     return html
-
 
 if uploaded_file:
     wb = openpyxl.load_workbook(BytesIO(uploaded_file.read()), data_only=True)
